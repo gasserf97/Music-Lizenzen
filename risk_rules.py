@@ -35,9 +35,10 @@ MAJOR_CATALOG_HINTS = (
 )
 
 LICENSED_LIBRARIES = (
+    "artlist.io",
+    "artlist",
     "epidemic sound",
     "epidemic",
-    "artlist",
     "musicbed",
     "soundstripe",
     "audiojungle",
@@ -138,7 +139,14 @@ def classify(
     fingerprint_label: str = "",
     fingerprint_match: bool = False,
 ) -> RiskDecision:
-    """Riskikostufe. Kein Treffer ist niemals LOW / unbedenklich."""
+    """Riskikostufe. Kein Treffer ist niemals LOW / unbedenklich.
+
+    Profil:
+    - HIGH — bekannte Claims / Watchlist-Tracks (z. B. Love You So)
+    - MEDIUM — Major-Label-Katalog oder sonstige kommerzielle Signale
+    - LOW — Rechte klar bei Bibliothek (Artlist, Epidemic, …)
+    - UNKNOWN — keine verwertbaren Daten
+    """
     ig_original = is_original_title(ig_title, audio_type)
     licensed_type = "licensed" in norm(audio_type)
     has_ig_song = bool(norm(ig_title)) and not ig_original
@@ -156,14 +164,7 @@ def classify(
             "mit Anwalt prüfen",
         )
 
-    major = hits_major_label(fingerprint_label, fingerprint_artist, ig_artist, fingerprint_title)
-    if major:
-        return RiskDecision(
-            "HIGH",
-            f"Major-Kataloghinweis ({major}) in Label/Künstler. Kommerzielle Nutzung auf einem Geschäftskonto.",
-            "stummschalten",
-        )
-
+    # Artlist / Bibliothek vor Major: wenn die Rechte dort liegen → LOW
     library = hits_licensed_library(
         fingerprint_label,
         fingerprint_artist,
@@ -174,23 +175,31 @@ def classify(
     if library:
         return RiskDecision(
             "LOW",
-            f"Sieht nach lizenzierter Bibliotheksmusik aus ({library}). Nachweis (Abo/Lizenz) prüfen, dann belassen.",
+            f"Rechte bei Bibliothek ({library}). Nachweis (Abo/Lizenz) prüfen, dann belassen.",
             "unverändert lassen",
+        )
+
+    major = hits_major_label(fingerprint_label, fingerprint_artist, ig_artist, fingerprint_title)
+    if major:
+        return RiskDecision(
+            "MEDIUM",
+            f"Major-Label-Hinweis ({major}). Kein bekannter Claim zu diesem Track — trotzdem ersetzen/stummschalten prüfen.",
+            "ersetzen",
         )
 
     if licensed_type and has_ig_song:
         return RiskDecision(
-            "HIGH",
+            "MEDIUM",
             "Instagram audio_type=licensed_music mit erkennbarem kommerziellem Titel. IG-Bibliothek ist keine Sync-Lizenz für ein Unternehmenskonto.",
-            "stummschalten",
+            "ersetzen",
         )
 
     if has_fp:
         if fingerprint_label:
             return RiskDecision(
-                "HIGH",
+                "MEDIUM",
                 f"Fingerprint trifft kommerzielle Aufnahme ({fingerprint_artist} — {fingerprint_title}, Label {fingerprint_label}).",
-                "stummschalten",
+                "ersetzen",
             )
         return RiskDecision(
             "MEDIUM",

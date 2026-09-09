@@ -60,13 +60,13 @@ def test_epidemic_is_low() -> None:
     assert decision.risk == "LOW"
 
 
-def test_licensed_commercial_hit_is_high() -> None:
+def test_licensed_commercial_hit_is_medium() -> None:
     decision = classify(
         ig_title="Espresso",
         ig_artist="Sabrina Carpenter",
         audio_type="licensed_music",
     )
-    assert decision.risk == "HIGH"
+    assert decision.risk == "MEDIUM"
     assert "licensed_music" in decision.reason
 
 
@@ -89,14 +89,36 @@ def test_fingerprint_without_label_is_medium() -> None:
     assert decision.risk == "MEDIUM"
 
 
-def test_major_label_hint() -> None:
+def test_major_label_hint_is_medium() -> None:
     decision = classify(
         fingerprint_title="Big Song",
         fingerprint_artist="Star",
         fingerprint_label="Warner Music UK",
         fingerprint_match=True,
     )
-    assert decision.risk == "HIGH"
+    assert decision.risk == "MEDIUM"
+    assert "Major" in decision.reason or "warner" in decision.reason.lower()
+
+
+def test_artlist_rights_are_low() -> None:
+    decision = classify(
+        ig_title="Sunrise Drive",
+        ig_artist="Artlist",
+        audio_type="licensed_music",
+    )
+    assert decision.risk == "LOW"
+    assert "artlist" in decision.reason.lower()
+
+
+def test_artlist_label_beats_major_confusion() -> None:
+    """Artlist-Rechte bleiben LOW, auch wenn Label-Text verwirrend ist."""
+    decision = classify(
+        fingerprint_title="Worksite Pulse",
+        fingerprint_artist="Studio X",
+        fingerprint_label="Artlist / Exclusive",
+        fingerprint_match=True,
+    )
+    assert decision.risk == "LOW"
 
 
 def test_watchlist_title_only() -> None:

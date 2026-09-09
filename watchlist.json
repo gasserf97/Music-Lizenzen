@@ -3,12 +3,12 @@
     {
       "title": "Love You So",
       "artists": ["The King Khan & BBQ Show", "King Khan", "BBQ Show"],
-      "note": "Bereits 7.000 € Forderung gegen krapfbau. Reel gelöscht, Katalog weiter prüfen."
+      "note": "Bekannter Claim: bereits 7.000 € Forderung gegen krapfbau. Reel gelöscht, Katalog weiter prüfen."
     },
     {
       "title": "Victory Lap",
       "artists": ["Fred again", "Fred again..", "Skepta", "PlaqueBoyMax"],
-      "note": "Atlantic / Warner Music UK — inkl. Two / Five Varianten."
+      "note": "Bekannter Risikotitel (Atlantic / Warner Music UK) — inkl. Two / Five Varianten. HIGH wegen Watchlist."
     }
   ],
   "title_aliases": {
@@ -30,9 +30,10 @@
     "in the red"
   ],
   "licensed_libraries": [
+    "artlist.io",
+    "artlist",
     "epidemic sound",
     "epidemic",
-    "artlist",
     "musicbed",
     "soundstripe",
     "audiojungle",

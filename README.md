@@ -99,14 +99,14 @@ Der Transkript-Endpunkt von ScrapeCreators wird **nicht** verwendet (Sprache, ke
 
 ## Risikoregeln (v1)
 
-- **HIGH** — Beobachtungsliste, Major-Label-Hinweis (Warner, Atlantic, Universal, Sony, …), oder `licensed_music` mit erkennbarem kommerziellem Titel.
-- **MEDIUM** — kommerzieller Titel ohne Label, oder offizieller IG-Sound auf dem Geschäftskonto.
+- **HIGH** — bekannte Claims / Watchlist-Tracks (erkannte Titel mit bereits bekannter Abmahnung oder Klage).
+- **MEDIUM** — Major-Label-Hinweis (Warner, Atlantic, Universal, Sony, …) oder sonstige kommerzielle Signale ohne bekannten Claim.
 - **UNKNOWN** — keine IG-Musikmetadaten und kein Fingerprint. Nicht als sicher bezeichnen.
-- **LOW** — klar Bibliotheksmusik (Epidemic, Artlist, …) bzw. nachweislich lizenzierte Nutzmusik.
+- **LOW** — Rechte bei Bibliothek, insbesondere **Artlist**, sowie Epidemic Sound u. a. (Nachweis prüfen).
 
-Beobachtungsliste in `watchlist.json` (erweiterbar):
+Beobachtungsliste in `watchlist.json` (erweiterbar) → immer **HIGH**:
 
-- The King Khan & BBQ Show — Love You So (bereits beansprucht)
+- The King Khan & BBQ Show — Love You So (bereits 7.000 € Forderung)
 - Fred again.. / Skepta / PlaqueBoyMax — Victory Lap (+ Varianten), Atlantic / Warner Music UK
 
 EU-Kontext: Mandant in Italien (Südtirol). Forderungen kommen oft über Labels oder Verwertungsgesellschaften (SIAE / GEMA-Art) bzw. Kanzleien im Stil SoundGuardian, IPPC Law, Hild & Kollegen, Defend Music. Typisch Tausende Euro **pro Titel**, nicht Instagram-Verwarnungsgebühren.
