@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from export_csv import write_csv, write_json
 from models import ReelRow
 
 _HISTORY_LOCK = threading.Lock()
-_SAFE_ID = re.compile(r"^[0-9]{8}T[0-9]{6}Z_[a-z0-9._-]{1,64}$")
+_SAFE_ID = re.compile(r"^[0-9]{8}T[0-9]{6,9}Z_[a-z0-9._-]{1,64}$")
 
 
 def scans_dir(out: Path) -> Path:
@@ -27,9 +28,11 @@ def _utc_now() -> datetime:
 
 
 def make_scan_id(handle: str, when: datetime | None = None) -> str:
-    stamp = (when or _utc_now()).strftime("%Y%m%dT%H%M%SZ")
+    stamp = (when or _utc_now()).strftime("%Y%m%dT%H%M%S")
+    # Mikrosekunden, damit mehrere Scans in derselben Sekunde nicht kollidieren
+    micros = f"{(when or _utc_now()).microsecond:06d}"
     safe = re.sub(r"[^a-z0-9._-]+", "-", (handle or "scan").lower()).strip("-") or "scan"
-    return f"{stamp}_{safe[:48]}"
+    return f"{stamp}{micros[:3]}Z_{safe[:48]}"
 
 
 def is_valid_scan_id(scan_id: str) -> bool:
@@ -133,6 +136,50 @@ def save_scan(
         _write_index(out, entries[:200])
 
     return meta
+
+
+def delete_scan(out: Path, scan_id: str) -> dict[str, Any]:
+    """Löscht einen gespeicherten Scan inkl. Dateien. Wirft ValueError bei ungültiger ID."""
+    if not is_valid_scan_id(scan_id):
+        raise ValueError("Ungültige Scan-ID.")
+
+    with _HISTORY_LOCK:
+        entries = _read_index(out)
+        match = next((item for item in entries if item.get("id") == scan_id), None)
+        folder = scans_dir(out) / scan_id
+        if match is None and not folder.exists():
+            raise ValueError("Gespeicherter Scan nicht gefunden.")
+        remaining = [item for item in entries if item.get("id") != scan_id]
+        _write_index(out, remaining)
+
+    if folder.exists():
+        shutil.rmtree(folder)
+
+    _refresh_latest_shortcuts(out, remaining)
+    return match or {"id": scan_id}
+
+
+def _refresh_latest_shortcuts(out: Path, remaining: list[dict[str, Any]]) -> None:
+    """Aktualisiert report.csv/json auf den neuesten verbleibenden Scan oder entfernt sie."""
+    latest_csv = out / "report.csv"
+    latest_json = out / "report.json"
+    if not remaining:
+        latest_csv.unlink(missing_ok=True)
+        latest_json.unlink(missing_ok=True)
+        return
+    newest = sorted(
+        remaining,
+        key=lambda item: str(item.get("created_at") or item.get("id") or ""),
+        reverse=True,
+    )[0]
+    newest_id = str(newest.get("id") or "")
+    if not newest_id or not is_valid_scan_id(newest_id):
+        return
+    src_csv, src_json = scan_paths(out, newest_id)
+    if src_json.exists():
+        latest_json.write_bytes(src_json.read_bytes())
+    if src_csv.exists():
+        latest_csv.write_bytes(src_csv.read_bytes())
 
 
 def ensure_history_from_latest(out: Path) -> None:

@@ -168,3 +168,12 @@ def test_demo_scan_and_downloads(client: TestClient) -> None:
     assert scan_id in history.text
     hist_csv = client.get(f"/download/csv?scan={scan_id}")
     assert hist_csv.status_code == 200
+    deleted = client.post(
+        "/scans/delete",
+        data={"scan_id": scan_id},
+        follow_redirects=True,
+    )
+    assert deleted.status_code == 200
+    assert "gelöscht" in deleted.text
+    gone = client.get(f"/?scan={scan_id}")
+    assert gone.status_code == 404

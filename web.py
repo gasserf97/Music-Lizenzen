@@ -32,6 +32,7 @@ from scan import (
     setup_logging,
 )
 from scan_history import (
+    delete_scan,
     ensure_history_from_latest,
     is_valid_scan_id,
     list_scans,
@@ -496,6 +497,25 @@ def allowlist_remove(
         return _page(request, error=str(exc), handle=raw or DEFAULT_HANDLE, status_code=400)
     _job["error"] = ""
     _job["message"] = f"@{removed} von der Allowlist entfernt."
+    return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/scans/delete", response_model=None)
+def scans_delete(
+    request: Request,
+    _: None = Depends(require_login),
+    scan_id: str = Form(""),
+) -> HTMLResponse | RedirectResponse:
+    raw = (scan_id or "").strip()
+    try:
+        deleted = delete_scan(OUT, raw)
+    except ValueError as exc:
+        return _page(request, error=str(exc), status_code=400)
+    label = deleted.get("id") or raw
+    _job["error"] = ""
+    _job["message"] = f"Scan {label} gelöscht."
+    if _job.get("last_scan_id") == raw:
+        _job["last_scan_id"] = ""
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
 

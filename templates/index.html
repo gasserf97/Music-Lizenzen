@@ -236,7 +236,13 @@
               <td>{{ item.mode or "—" }}</td>
               <td class="risk HIGH">{{ item.HIGH }}</td>
               <td>{{ item.total }}</td>
-              <td><a href="/?scan={{ item.id }}">Ansehen</a></td>
+              <td style="white-space:nowrap">
+                <a href="/?scan={{ item.id }}">Ansehen</a>
+                <form method="post" action="/scans/delete" style="display:inline;margin:0 0 0 0.5rem" onsubmit="return confirm('Scan wirklich löschen?');">
+                  <input type="hidden" name="scan_id" value="{{ item.id }}">
+                  <button type="submit" class="btn-small" {% if running %}disabled{% endif %}>Löschen</button>
+                </form>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
