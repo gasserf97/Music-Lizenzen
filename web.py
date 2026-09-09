@@ -8,6 +8,7 @@ import logging
 import os
 import secrets
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -41,6 +42,7 @@ SESSION_AUTH_KEY = "authenticated"
 log = logging.getLogger("scanner.web")
 
 _scan_lock = threading.Lock()
+_allowlist_lock = threading.Lock()
 _job: dict[str, Any] = {
     "running": False,
     "error": "",
@@ -50,6 +52,10 @@ _job: dict[str, Any] = {
 
 class LoginRequired(Exception):
     """Nicht angemeldet — Redirect zur Passwort-Seite."""
+
+
+def allowlist_path() -> Path:
+    return OUT / "allowed_handles.json"
 
 
 def parse_allowed_handles(raw: str | None = None) -> set[str]:
@@ -67,8 +73,74 @@ def parse_allowed_handles(raw: str | None = None) -> set[str]:
     return found or {DEFAULT_HANDLE}
 
 
-def allowed_handles() -> set[str]:
+def _seed_handles_from_env() -> set[str]:
     return parse_allowed_handles(os.getenv("ALLOWED_HANDLES"))
+
+
+def _read_stored_handles() -> set[str] | None:
+    path = allowlist_path()
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return None
+    raw_items: list[Any]
+    if isinstance(data, dict):
+        raw_items = list(data.get("handles") or [])
+    elif isinstance(data, list):
+        raw_items = data
+    else:
+        return None
+    found: set[str] = set()
+    for item in raw_items:
+        try:
+            found.add(parse_handle(str(item)).lower())
+        except ValueError:
+            continue
+    return found
+
+
+def _write_stored_handles(handles: set[str]) -> None:
+    path = allowlist_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"handles": sorted(handles)}
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def allowed_handles() -> set[str]:
+    """Effektive Allowlist: UI-Datei, sonst Seed aus ALLOWED_HANDLES."""
+    with _allowlist_lock:
+        stored = _read_stored_handles()
+        if stored:
+            return set(stored)
+        seed = _seed_handles_from_env()
+        _write_stored_handles(seed)
+        return set(seed)
+
+
+def add_allowed_handle(handle: str) -> str:
+    parsed = parse_handle(handle).lower()
+    with _allowlist_lock:
+        stored = _read_stored_handles()
+        current = set(stored) if stored else _seed_handles_from_env()
+        current.add(parsed)
+        _write_stored_handles(current)
+    return parsed
+
+
+def remove_allowed_handle(handle: str) -> str:
+    parsed = parse_handle(handle).lower()
+    with _allowlist_lock:
+        stored = _read_stored_handles()
+        current = set(stored) if stored else _seed_handles_from_env()
+        if parsed not in current:
+            raise ValueError(f"@{parsed} steht nicht auf der Allowlist.")
+        if len(current) <= 1:
+            raise ValueError("Mindestens ein Handle muss auf der Allowlist bleiben.")
+        current.discard(parsed)
+        _write_stored_handles(current)
+    return parsed
 
 
 def handle_is_allowed(handle: str, allowed: set[str] | None = None) -> bool:
@@ -334,6 +406,38 @@ def index(request: Request, _: None = Depends(require_login)) -> HTMLResponse:
     return _page(request)
 
 
+@app.post("/allowlist/add", response_model=None)
+def allowlist_add(
+    request: Request,
+    _: None = Depends(require_login),
+    handle: str = Form(""),
+) -> HTMLResponse | RedirectResponse:
+    raw = (handle or "").strip()
+    try:
+        added = add_allowed_handle(raw)
+    except ValueError as exc:
+        return _page(request, error=str(exc), handle=raw or DEFAULT_HANDLE, status_code=400)
+    _job["error"] = ""
+    _job["message"] = f"@{added} zur Allowlist hinzugefügt."
+    return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/allowlist/remove", response_model=None)
+def allowlist_remove(
+    request: Request,
+    _: None = Depends(require_login),
+    handle: str = Form(""),
+) -> HTMLResponse | RedirectResponse:
+    raw = (handle or "").strip()
+    try:
+        removed = remove_allowed_handle(raw)
+    except ValueError as exc:
+        return _page(request, error=str(exc), handle=raw or DEFAULT_HANDLE, status_code=400)
+    _job["error"] = ""
+    _job["message"] = f"@{removed} von der Allowlist entfernt."
+    return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @app.get("/api/status")
 def scan_status(_: None = Depends(require_login)) -> JSONResponse:
     rows, summary = _last_report()
@@ -428,7 +532,8 @@ def start_scan(
                 request,
                 (
                     f"@{parsed} steht nicht auf der Allowlist. "
-                    f"Dieses Tool scannt nur Konten, die ihr verwaltet ({allow})."
+                    f"Unten unter „Kunden / Allowlist“ hinzufügen. "
+                    f"Aktuell erlaubt: {allow}."
                 ),
                 handle=raw_handle,
                 demo=is_demo,

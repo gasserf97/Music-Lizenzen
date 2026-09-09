@@ -120,7 +120,9 @@ EU-Kontext: Mandant in Italien (Südtirol). Forderungen kommen oft über Labels 
 
 ## Hosting auf Render
 
-Kleine **interne** Oberfläche, kein öffentliches SaaS. Nur Handles aus `ALLOWED_HANDLES` (Standard: `krapfbau`). Fremde Profile werden abgelehnt.
+Kleine **interne** Oberfläche, kein öffentliches SaaS. Nur Handles auf der Allowlist
+(Standard: `krapfbau`). Fremde Profile werden abgelehnt. Weitere Mandanten kannst du
+**in der UI** unter „Kunden / Allowlist“ hinzufügen (oder dauerhaft über `ALLOWED_HANDLES`).
 
 Dieser Cloud-Agent kann **nicht** in ein Render-Konto einloggen und nicht auf „Deploy“ klicken. Ohne `RENDER_API_KEY` in der Umgebung bleibt nur: Repo pushen, dann im [Render-Dashboard](https://dashboard.render.com) verbinden.
 

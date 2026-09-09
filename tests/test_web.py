@@ -97,6 +97,47 @@ def test_web_rejects_foreign_handle(client: TestClient) -> None:
     assert "natgeo" in response.text
 
 
+def test_ui_can_add_and_remove_allowlist_handle(client: TestClient) -> None:
+    added = client.post(
+        "/allowlist/add",
+        data={"handle": "musterbau"},
+        follow_redirects=True,
+    )
+    assert added.status_code == 200
+    assert "musterbau" in added.text
+    assert "zur Allowlist hinzugefügt" in added.text
+
+    scan_ok = client.post(
+        "/scan",
+        data={"handle": "musterbau", "demo": "1", "mode": "metadata"},
+    )
+    assert scan_ok.status_code == 200
+
+    removed = client.post(
+        "/allowlist/remove",
+        data={"handle": "musterbau"},
+        follow_redirects=True,
+    )
+    assert removed.status_code == 200
+    assert "von der Allowlist entfernt" in removed.text
+
+    blocked = client.post(
+        "/scan",
+        data={"handle": "musterbau", "mode": "metadata"},
+    )
+    assert blocked.status_code == 400
+    assert "Allowlist" in blocked.text
+
+
+def test_cannot_remove_last_allowlist_handle(client: TestClient) -> None:
+    response = client.post(
+        "/allowlist/remove",
+        data={"handle": "krapfbau"},
+    )
+    assert response.status_code == 400
+    assert "Mindestens ein Handle" in response.text
+
+
 def test_demo_scan_and_downloads(client: TestClient) -> None:
     response = client.post(
         "/scan",
