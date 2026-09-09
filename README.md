@@ -79,7 +79,7 @@ Interne Web-UI (lokal, nicht öffentlich):
 ```bash
 export SCANNER_PASSWORD='ein-langes-passwort'
 uvicorn web:app --host 0.0.0.0 --port 8000
-# http://127.0.0.1:8000  — HTTP-Basic, Passwort = SCANNER_PASSWORD
+# http://127.0.0.1:8000  — Login nur mit Passwort (kein Benutzername)
 # /health ohne Login (Render-Check)
 ```
 
@@ -126,18 +126,18 @@ Dieser Cloud-Agent kann **nicht** in ein Render-Konto einloggen und nicht auf �
 
 ### 1. Code auf GitHub
 
-Empfohlenes Repo: [github.com/gasserf97/Musik-Lizenzen](https://github.com/gasserf97/Musik-Lizenzen).
+Empfohlenes Repo: [github.com/gasserf97/Music-Lizenzen](https://github.com/gasserf97/Music-Lizenzen).
 
 Wenn das Repo bei dir liegt, dorthin pushen. Danach Render an GitHub anbinden.
 
 ### 2. Blueprint (Docker)
 
 1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
-2. GitHub-Repo `gasserf97/Musik-Lizenzen` (oder den Fork) auswählen. Render liest `render.yaml`.
+2. GitHub-Repo `gasserf97/Music-Lizenzen` auswählen. Render liest `render.yaml`.
 3. Secrets im Dashboard setzen (`sync: false` — nicht in Git):
    - `SCRAPECREATORS_API_KEY`
    - `AUDD_TOKEN` (nur für Fingerprint, nicht für den Metadata-Default)
-   - `SCANNER_PASSWORD` — **in Produktion setzen**, sonst ist die UI offen
+   - `SCANNER_PASSWORD` — **in Produktion setzen**, sonst ist die UI offen (Login nur Passwort)
    - `ALLOWED_HANDLES` = `krapfbau` (weitere Mandanten komma-getrennt)
 4. Deploy. Health-Check: `GET /health`.
 5. Start-Kommando (steht im Dockerfile): `uvicorn web:app --host 0.0.0.0 --port $PORT`.
@@ -150,7 +150,7 @@ ffmpeg ist im Image (Fingerprint). Standard-Modus der UI ist **nur Metadaten** (
 
 ### Hinweise
 
-- HTTP-Basic: Benutzername beliebig, Passwort = `SCANNER_PASSWORD`.
+- Login: nur Passwort (`SCANNER_PASSWORD`), kein Benutzername.
 - Live-Scan ohne `SCRAPECREATORS_API_KEY` geht nicht; Demo-Scan schon.
 - Render schließt HTTP-Requests nach ~100 s. Große Live-Scans laufen im Hintergrund; die Seite lädt neu, bis der Report da ist.
 - Plan in `render.yaml`: `starter`. Free geht nur, wenn dein Account das noch anbietet — dann im Dashboard umstellen.

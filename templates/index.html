@@ -102,8 +102,17 @@
 </head>
 <body>
   <header>
-    <h1>Musik Lizenzen</h1>
-    <p>Internes Audit · Instagram-Reels · nur verwaltete Konten</p>
+    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h1 style="margin:0">Musik Lizenzen</h1>
+        <p>Internes Audit · Instagram-Reels · nur verwaltete Konten</p>
+      </div>
+      {% if password_configured %}
+      <form method="post" action="/logout" style="margin:0">
+        <button type="submit" style="margin:0;background:transparent;border:1px solid rgba(255,255,255,.45)">Abmelden</button>
+      </form>
+      {% endif %}
+    </div>
   </header>
   <main>
     <p class="banner">

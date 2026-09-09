@@ -14,8 +14,8 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from export_csv import build_summary, write_csv, write_json
 from models import ReelRow, UsageLog
@@ -36,9 +36,9 @@ load_dotenv(ROOT / ".env")
 
 DEFAULT_HANDLE = "krapfbau"
 TEMPLATES = Jinja2Templates(directory=str(ROOT / "templates"))
+SESSION_AUTH_KEY = "authenticated"
 
 log = logging.getLogger("scanner.web")
-security = HTTPBasic(auto_error=False)
 
 _scan_lock = threading.Lock()
 _job: dict[str, Any] = {
@@ -46,6 +46,10 @@ _job: dict[str, Any] = {
     "error": "",
     "message": "",
 }
+
+
+class LoginRequired(Exception):
+    """Nicht angemeldet — Redirect zur Passwort-Seite."""
 
 
 def parse_allowed_handles(raw: str | None = None) -> set[str]:
@@ -80,19 +84,25 @@ def password_configured() -> bool:
     return bool(os.getenv("SCANNER_PASSWORD", "").strip())
 
 
-def require_login(
-    credentials: HTTPBasicCredentials | None = Depends(security),
-) -> None:
-    expected = os.getenv("SCANNER_PASSWORD", "").strip()
-    if not expected:
+def session_secret() -> str:
+    """Cookie-Signatur. Prefer SESSION_SECRET, sonst SCANNER_PASSWORD, sonst Dev-Fallback."""
+    return (
+        os.getenv("SESSION_SECRET", "").strip()
+        or os.getenv("SCANNER_PASSWORD", "").strip()
+        or "dev-insecure-session-secret"
+    )
+
+
+def is_authenticated(request: Request) -> bool:
+    if not password_configured():
+        return True
+    return bool(request.session.get(SESSION_AUTH_KEY))
+
+
+def require_login(request: Request) -> None:
+    if is_authenticated(request):
         return
-    given = (credentials.password if credentials else "") or ""
-    if not secrets.compare_digest(given, expected):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Passwort erforderlich",
-            headers={"WWW-Authenticate": 'Basic realm="Musik Lizenzen intern"'},
-        )
+    raise LoginRequired()
 
 
 def _truthy(value: str | None) -> bool:
@@ -226,6 +236,7 @@ def _form_context(
         "message": _job.get("message") or "",
         "running": bool(_job.get("running")),
         "password_missing": not password_configured(),
+        "password_configured": password_configured(),
         "allowed": sorted(allowed_handles()),
         "handle": handle,
         "demo": demo,
@@ -245,6 +256,14 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=session_secret(),
+    same_site="lax",
+    https_only=os.getenv("RENDER", "").lower() == "true"
+    or os.getenv("FORCE_HTTPS_COOKIES", "").lower() in {"1", "true", "yes"},
+    max_age=60 * 60 * 12,
+)
 setup_logging(verbose=False)
 
 if not password_configured():
@@ -254,9 +273,60 @@ if not password_configured():
     )
 
 
+@app.exception_handler(LoginRequired)
+async def login_required_handler(request: Request, _exc: LoginRequired) -> RedirectResponse:
+    next_path = request.url.path
+    if next_path in {"/login", "/logout"}:
+        next_path = "/"
+    target = "/login"
+    if next_path and next_path != "/":
+        target = f"/login?next={next_path}"
+    return RedirectResponse(target, status_code=status.HTTP_303_SEE_OTHER)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = "/") -> HTMLResponse:
+    if is_authenticated(request):
+        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    dest = next if next.startswith("/") and not next.startswith("//") else "/"
+    return TEMPLATES.TemplateResponse(
+        request,
+        "login.html",
+        {"request": request, "error": "", "next": dest},
+    )
+
+
+@app.post("/login", response_model=None)
+def login_submit(
+    request: Request,
+    password: str = Form(""),
+    next: str = Form("/"),
+) -> RedirectResponse | HTMLResponse:
+    expected = os.getenv("SCANNER_PASSWORD", "").strip()
+    dest = next if next.startswith("/") and not next.startswith("//") else "/"
+    if not expected:
+        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    given = password or ""
+    if not secrets.compare_digest(given, expected):
+        return TEMPLATES.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "error": "Falsches Passwort.", "next": dest},
+            status_code=401,
+        )
+    request.session[SESSION_AUTH_KEY] = True
+    return RedirectResponse(dest, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/logout")
+def logout(request: Request) -> RedirectResponse:
+    request.session.clear()
+    return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/", response_class=HTMLResponse)

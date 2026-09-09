@@ -54,11 +54,37 @@ def test_health_open_even_with_password(monkeypatch) -> None:
 def test_ui_requires_password(monkeypatch) -> None:
     monkeypatch.setenv("SCANNER_PASSWORD", "geheim")
     locked = TestClient(app)
-    denied = locked.get("/")
-    assert denied.status_code == 401
-    ok = locked.get("/", auth=("intern", "geheim"))
-    assert ok.status_code == 200
-    assert "Musik Lizenzen" in ok.text
+    denied = locked.get("/", follow_redirects=False)
+    assert denied.status_code == 303
+    assert denied.headers["location"].startswith("/login")
+
+    login_page = locked.get("/login")
+    assert login_page.status_code == 200
+    assert 'name="password"' in login_page.text
+    assert "Benutzername" not in login_page.text
+    assert 'name="username"' not in login_page.text
+
+    bad = locked.post("/login", data={"password": "falsch"})
+    assert bad.status_code == 401
+    assert "Falsches Passwort" in bad.text
+
+    ok = locked.post("/login", data={"password": "geheim"}, follow_redirects=False)
+    assert ok.status_code == 303
+    home = locked.get("/")
+    assert home.status_code == 200
+    assert "Musik Lizenzen" in home.text
+    assert "Abmelden" in home.text
+
+
+def test_password_only_login_no_username_field(monkeypatch) -> None:
+    monkeypatch.setenv("SCANNER_PASSWORD", "geheim")
+    client = TestClient(app)
+    page = client.get("/login")
+    assert page.status_code == 200
+    assert 'name="password"' in page.text
+    assert 'name="username"' not in page.text
+    assert "Benutzername" not in page.text
+
 
 
 def test_web_rejects_foreign_handle(client: TestClient) -> None:
