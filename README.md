@@ -74,6 +74,15 @@ Ohne Keys (Format prüfen, keine Aussage über das echte Konto):
 python scan.py --demo --out out/report.csv
 ```
 
+Interne Web-UI (lokal, nicht öffentlich):
+
+```bash
+export SCANNER_PASSWORD='ein-langes-passwort'
+uvicorn web:app --host 0.0.0.0 --port 8000
+# http://127.0.0.1:8000  — HTTP-Basic, Passwort = SCANNER_PASSWORD
+# /health ohne Login (Render-Check)
+```
+
 Erneuter Lauf ist idempotent: bekannte Shortcodes und SHA-256-Duplikate werden übersprungen (`out/state.json`). `--force` scannt neu.
 
 ## Ablauf
@@ -108,6 +117,43 @@ EU-Kontext: Mandant in Italien (Südtirol). Forderungen kommen oft über Labels 
 - kein Login-/Session-Diebstahl, kein Umgehen von Nutzungsbedingungen per Stealth-Browser
 - keine Behauptung „keine Übereinstimmung = legal“
 - keine anwaltliche Vertretung der 7.000-€-Forderung
+
+## Hosting auf Render
+
+Kleine **interne** Oberfläche, kein öffentliches SaaS. Nur Handles aus `ALLOWED_HANDLES` (Standard: `krapfbau`). Fremde Profile werden abgelehnt.
+
+Dieser Cloud-Agent kann **nicht** in ein Render-Konto einloggen und nicht auf „Deploy“ klicken. Ohne `RENDER_API_KEY` in der Umgebung bleibt nur: Repo pushen, dann im [Render-Dashboard](https://dashboard.render.com) verbinden.
+
+### 1. Code auf GitHub
+
+Empfohlenes Repo: [github.com/gasserf97/Musik-Lizenzen](https://github.com/gasserf97/Musik-Lizenzen).
+
+Wenn das Repo bei dir liegt, dorthin pushen. Danach Render an GitHub anbinden.
+
+### 2. Blueprint (Docker)
+
+1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+2. GitHub-Repo `gasserf97/Musik-Lizenzen` (oder den Fork) auswählen. Render liest `render.yaml`.
+3. Secrets im Dashboard setzen (`sync: false` — nicht in Git):
+   - `SCRAPECREATORS_API_KEY`
+   - `AUDD_TOKEN` (nur für Fingerprint, nicht für den Metadata-Default)
+   - `SCANNER_PASSWORD` — **in Produktion setzen**, sonst ist die UI offen
+   - `ALLOWED_HANDLES` = `krapfbau` (weitere Mandanten komma-getrennt)
+4. Deploy. Health-Check: `GET /health`.
+5. Start-Kommando (steht im Dockerfile): `uvicorn web:app --host 0.0.0.0 --port $PORT`.
+
+ffmpeg ist im Image (Fingerprint). Standard-Modus der UI ist **nur Metadaten** (kein Download).
+
+### 3. Web Service manuell
+
+**New** → **Web Service** → dasselbe Repo, Runtime **Docker**, Branch mit diesem Code. Health-Pfad `/health`. Dieselben Env-Vars wie oben.
+
+### Hinweise
+
+- HTTP-Basic: Benutzername beliebig, Passwort = `SCANNER_PASSWORD`.
+- Live-Scan ohne `SCRAPECREATORS_API_KEY` geht nicht; Demo-Scan schon.
+- Render schließt HTTP-Requests nach ~100 s. Große Live-Scans laufen im Hintergrund; die Seite lädt neu, bis der Report da ist.
+- Plan in `render.yaml`: `starter`. Free geht nur, wenn dein Account das noch anbietet — dann im Dashboard umstellen.
 
 ## Tests
 

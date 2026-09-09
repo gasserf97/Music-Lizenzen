@@ -1,0 +1,19 @@
+# Blueprint: https://dashboard.render.com → New → Blueprint
+# Dieses File deployt nicht von selbst. GitHub-Repo verbinden, Secrets im Dashboard setzen.
+
+services:
+  - type: web
+    name: musik-lizenzen
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: SCRAPECREATORS_API_KEY
+        sync: false
+      - key: AUDD_TOKEN
+        sync: false
+      - key: SCANNER_PASSWORD
+        sync: false
+      - key: ALLOWED_HANDLES
+        value: krapfbau

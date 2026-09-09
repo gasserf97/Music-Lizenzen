@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if running %}
+  <meta http-equiv="refresh" content="3">
+  {% endif %}
+  <title>Musik Lizenzen — intern</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --ink: #1c1917;
+      --muted: #57534e;
+      --card: #fffcf7;
+      --line: #d6d3d1;
+      --high: #b42318;
+      --medium: #b54708;
+      --low: #027a48;
+      --unknown: #57534e;
+      --accent: #1d4e3e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    header {
+      background: var(--accent);
+      color: #f4f1ea;
+      padding: 1.25rem 1.5rem;
+    }
+    header p { margin: 0.35rem 0 0; opacity: 0.85; font-size: 0.95rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    .banner, .warn, .ok, .err {
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      margin: 0 0 1rem;
+    }
+    .banner { background: #e7e5e4; }
+    .warn { background: #fef3c7; border: 1px solid #f59e0b; }
+    .ok { background: #dcfce7; }
+    .err { background: #fee2e2; border: 1px solid #ef4444; }
+    form, .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.6rem 0 0.25rem; }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      max-width: 28rem;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+    }
+    .check { font-weight: 500; margin-top: 0.75rem; }
+    button {
+      margin-top: 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.55rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pills { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
+    .pill {
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: #e7e5e4;
+    }
+    .pill.HIGH { background: #fee2e2; color: var(--high); }
+    .pill.MEDIUM { background: #ffedd5; color: var(--medium); }
+    .pill.LOW { background: #dcfce7; color: var(--low); }
+    .pill.UNKNOWN { background: #e7e5e4; color: var(--unknown); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; vertical-align: top; padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--line); }
+    th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+    .risk { font-weight: 700; }
+    .risk.HIGH { color: var(--high); }
+    .risk.MEDIUM { color: var(--medium); }
+    .risk.LOW { color: var(--low); }
+    .risk.UNKNOWN { color: var(--unknown); }
+    .dl { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 0; }
+    .dl a { color: var(--accent); font-weight: 600; }
+    footer { color: var(--muted); font-size: 0.85rem; margin-top: 2rem; }
+    code { font-size: 0.9em; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Musik Lizenzen</h1>
+    <p>Internes Audit · Instagram-Reels · nur verwaltete Konten</p>
+  </header>
+  <main>
+    <p class="banner">
+      <strong>UNKNOWN heißt nicht „legal“.</strong>
+      Es heißt nur: Audio nicht identifiziert.
+      Kein öffentlicher Scanner für fremde Profile.
+    </p>
+
+    {% if password_missing %}
+    <p class="warn">
+      <strong>SCANNER_PASSWORD</strong> ist nicht gesetzt — die Oberfläche ist ungeschützt.
+      Auf Render unbedingt setzen.
+    </p>
+    {% endif %}
+
+    {% if error %}<p class="err">{{ error }}</p>{% endif %}
+    {% if running %}<p class="warn">Scan läuft … die Seite aktualisiert sich automatisch.</p>{% endif %}
+    {% if message and not running %}<p class="ok">{{ message }}</p>{% endif %}
+
+    <form method="post" action="/scan">
+      <h2>Scan</h2>
+      <p class="muted">
+        Allowlist: {% for h in allowed %}@{{ h }}{% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+      <label for="handle">Instagram-Handle</label>
+      <input id="handle" name="handle" type="text" value="{{ handle }}" placeholder="krapfbau" {% if running %}disabled{% endif %}>
+
+      <label class="check">
+        <input type="checkbox" name="demo" value="1" {% if demo %}checked{% endif %} {% if running %}disabled{% endif %}>
+        Demo-Scan (Beispieldaten, keine Live-APIs)
+      </label>
+
+      <label for="mode">Modus</label>
+      <select id="mode" name="mode" {% if running %}disabled{% endif %}>
+        <option value="metadata" {% if mode == "metadata" %}selected{% endif %}>Nur Metadaten (Standard, kein Download)</option>
+        <option value="cheap" {% if mode == "cheap" %}selected{% endif %}>Günstiger Fingerprint (45s Audio, AudD)</option>
+        <option value="full" {% if mode == "full" %}selected{% endif %}>Voller Fingerprint</option>
+      </select>
+
+      <label for="max_reels">Max. Reels (leer = alle)</label>
+      <input id="max_reels" name="max_reels" type="number" min="1" value="{{ max_reels }}" {% if running %}disabled{% endif %}>
+
+      <label class="check">
+        <input type="checkbox" name="force" value="1" {% if force %}checked{% endif %} {% if running %}disabled{% endif %}>
+        Erneut scannen (<code>--force</code>)
+      </label>
+
+      <button type="submit" {% if running %}disabled{% endif %}>Scan starten</button>
+    </form>
+
+    {% if summary %}
+    <section class="panel">
+      <h2>Letztes Ergebnis</h2>
+      <div class="pills">
+        <span class="pill">{{ summary.total }} Reels</span>
+        <span class="pill HIGH">HIGH {{ summary.HIGH }}</span>
+        <span class="pill MEDIUM">MEDIUM {{ summary.MEDIUM }}</span>
+        <span class="pill LOW">LOW {{ summary.LOW }}</span>
+        <span class="pill UNKNOWN">UNKNOWN {{ summary.UNKNOWN }}</span>
+      </div>
+      {% if summary.unique_major_label_songs %}
+      <p><strong>Songs, die wie ein Major-Label-Katalog aussehen</strong></p>
+      <ul>
+        {% for song in summary.unique_major_label_songs %}
+        <li>{{ song.artist }} — {{ song.title }}{% if song.label %} [{{ song.label }}]{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <div class="dl">
+        {% if has_csv %}<a href="/download/csv">CSV herunterladen</a>{% endif %}
+        {% if has_json %}<a href="/download/json">JSON herunterladen</a>{% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if rows %}
+    <section class="panel">
+      <h2>Reels</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Risiko</th>
+              <th>Titel / Artist</th>
+              <th>Typ</th>
+              <th>Fingerprint</th>
+              <th>Aktion</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td class="risk {{ row.risk }}">{{ row.risk }}</td>
+              <td>
+                {{ row.instagram_audio_title or "—" }}<br>
+                <span class="muted">{{ row.instagram_audio_artist }}</span>
+              </td>
+              <td>{{ row.audio_type }}</td>
+              <td>
+                {% if row.fingerprint_title %}
+                  {{ row.fingerprint_title }} — {{ row.fingerprint_artist }}
+                  {% if row.fingerprint_label %}<br><span class="muted">{{ row.fingerprint_label }}</span>{% endif %}
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ row.action }}<br><span class="muted">{{ row.risk_reason }}</span></td>
+              <td>
+                {% if row.permalink %}<a href="{{ row.permalink }}" rel="noreferrer">Reel</a>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
+    <footer>
+      Internes Werkzeug, keine anwaltliche Beratung.
+      UNKNOWN-Zeilen nicht als unbedenklich behandeln.
+    </footer>
+  </main>
+</body>
+</html>
