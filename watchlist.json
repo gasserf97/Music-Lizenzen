@@ -1,0 +1,47 @@
+{
+  "tracks": [
+    {
+      "title": "Love You So",
+      "artists": ["The King Khan & BBQ Show", "King Khan", "BBQ Show"],
+      "note": "Bereits 7.000 € Forderung gegen krapfbau. Reel gelöscht, Katalog weiter prüfen."
+    },
+    {
+      "title": "Victory Lap",
+      "artists": ["Fred again", "Fred again..", "Skepta", "PlaqueBoyMax"],
+      "note": "Atlantic / Warner Music UK — inkl. Two / Five Varianten."
+    }
+  ],
+  "title_aliases": {
+    "Victory Lap": ["Victory Lap", "Victory Lap Two", "Victory Lap Five", "Victory Lap (feat. Skepta & PlaqueBoyMax)"]
+  },
+  "label_hints": [
+    "warner",
+    "atlantic",
+    "universal",
+    "umg",
+    "sony",
+    "columbia",
+    "interscope",
+    "republic",
+    "capitol",
+    "b1 recordings",
+    "b1 record",
+    "goner",
+    "in the red"
+  ],
+  "licensed_libraries": [
+    "epidemic sound",
+    "epidemic",
+    "artlist",
+    "musicbed",
+    "soundstripe",
+    "audiojungle",
+    "envato",
+    "premiumbeat",
+    "pond5",
+    "storyblocks",
+    "motion array",
+    "uppbeat",
+    "audiio"
+  ]
+}

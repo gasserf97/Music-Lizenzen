@@ -1,0 +1,138 @@
+{
+  "summary": {
+    "total": 5,
+    "HIGH": 3,
+    "MEDIUM": 0,
+    "LOW": 1,
+    "UNKNOWN": 1,
+    "unique_major_label_songs": [
+      {
+        "title": "Love You So",
+        "artist": "The King Khan & BBQ Show",
+        "label": ""
+      },
+      {
+        "title": "Victory Lap",
+        "artist": "Fred again..",
+        "label": "Atlantic Records"
+      },
+      {
+        "title": "Espresso",
+        "artist": "Sabrina Carpenter",
+        "label": ""
+      }
+    ],
+    "credits": {
+      "scrapecreators_live": 0,
+      "scrapecreators_cached": 0,
+      "audd_calls": 0,
+      "acrcloud_calls": 0,
+      "downloads": 0,
+      "skipped_shortcodes": 0,
+      "skipped_hashes": 0,
+      "errors": []
+    }
+  },
+  "rows": [
+    {
+      "permalink": "https://www.instagram.com/reel/demoLoveYouSo/",
+      "taken_at": "2025-11-02T08:15:00+00:00",
+      "caption": "Baustelle Meran — Demo-Zeile, kein Live-Scan.",
+      "instagram_audio_title": "Love You So",
+      "instagram_audio_artist": "The King Khan & BBQ Show",
+      "audio_type": "licensed_music",
+      "fingerprint_title": "",
+      "fingerprint_artist": "",
+      "fingerprint_label": "",
+      "confidence": "",
+      "risk": "HIGH",
+      "risk_reason": "Bereits 7.000 € Forderung gegen krapfbau. Reel gelöscht, Katalog weiter prüfen.",
+      "action": "mit Anwalt prüfen",
+      "shortcode": "demoLoveYouSo",
+      "handle": "krapfbau",
+      "source": "demo",
+      "sha256": "",
+      "skipped": ""
+    },
+    {
+      "permalink": "https://www.instagram.com/reel/demoVictoryLap/",
+      "taken_at": "2026-01-14T10:00:00+00:00",
+      "caption": "Rohbau Zeitraffer",
+      "instagram_audio_title": "Original audio",
+      "instagram_audio_artist": "krapfbau",
+      "audio_type": "original_sounds",
+      "fingerprint_title": "Victory Lap",
+      "fingerprint_artist": "Fred again..",
+      "fingerprint_label": "Atlantic Records",
+      "confidence": "match",
+      "risk": "HIGH",
+      "risk_reason": "Atlantic / Warner Music UK — inkl. Two / Five Varianten.",
+      "action": "mit Anwalt prüfen",
+      "shortcode": "demoVictoryLap",
+      "handle": "krapfbau",
+      "source": "demo",
+      "sha256": "",
+      "skipped": ""
+    },
+    {
+      "permalink": "https://www.instagram.com/reel/demoUnknown/",
+      "taken_at": "2026-04-01T07:00:00+00:00",
+      "caption": "Innenausbau",
+      "instagram_audio_title": "Original audio",
+      "instagram_audio_artist": "krapfbau",
+      "audio_type": "original_sounds",
+      "fingerprint_title": "",
+      "fingerprint_artist": "",
+      "fingerprint_label": "",
+      "confidence": "",
+      "risk": "UNKNOWN",
+      "risk_reason": "Keine verwertbaren Instagram-Musikmetadaten und kein Fingerprint-Treffer. Nicht als unbedenklich werten.",
+      "action": "mit Anwalt prüfen",
+      "shortcode": "demoUnknown",
+      "handle": "krapfbau",
+      "source": "demo",
+      "sha256": "",
+      "skipped": ""
+    },
+    {
+      "permalink": "https://www.instagram.com/reel/demoEpidemic/",
+      "taken_at": "2026-05-20T09:30:00+00:00",
+      "caption": "Projektfilm",
+      "instagram_audio_title": "Night Shift",
+      "instagram_audio_artist": "Epidemic Sound",
+      "audio_type": "licensed_music",
+      "fingerprint_title": "",
+      "fingerprint_artist": "",
+      "fingerprint_label": "",
+      "confidence": "",
+      "risk": "LOW",
+      "risk_reason": "Sieht nach lizenzierter Bibliotheksmusik aus (epidemic sound). Nachweis (Abo/Lizenz) prüfen, dann belassen.",
+      "action": "unverändert lassen",
+      "shortcode": "demoEpidemic",
+      "handle": "krapfbau",
+      "source": "demo",
+      "sha256": "",
+      "skipped": ""
+    },
+    {
+      "permalink": "https://www.instagram.com/reel/demoIgSound/",
+      "taken_at": "2026-06-02T12:00:00+00:00",
+      "caption": "Richtfest",
+      "instagram_audio_title": "Espresso",
+      "instagram_audio_artist": "Sabrina Carpenter",
+      "audio_type": "licensed_music",
+      "fingerprint_title": "",
+      "fingerprint_artist": "",
+      "fingerprint_label": "",
+      "confidence": "",
+      "risk": "HIGH",
+      "risk_reason": "Instagram audio_type=licensed_music mit erkennbarem kommerziellem Titel. IG-Bibliothek ist keine Sync-Lizenz für ein Unternehmenskonto.",
+      "action": "stummschalten",
+      "shortcode": "demoIgSound",
+      "handle": "krapfbau",
+      "source": "demo",
+      "sha256": "",
+      "skipped": ""
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "items": [
+    {
+      "media": {
+        "taken_at": 1736294201,
+        "code": "DEiyb48AeB9",
+        "caption": null,
+        "url": "https://www.instagram.com/reel/DEiyb48AeB9",
+        "video_versions": [
+          {
+            "url": "https://example.invalid/expired.mp4"
+          }
+        ],
+        "clips_metadata": {
+          "audio_type": "original_sounds",
+          "music_info": null,
+          "original_sound_info": {
+            "original_audio_title": "Original audio",
+            "ig_artist": {
+              "username": "krapfbau",
+              "full_name": "Krapf Günther Bau"
+            }
+          }
+        }
+      }
+    },
+    {
+      "media": {
+        "taken_at": 1730000000,
+        "code": "LoveYouSoDemo",
+        "caption": { "text": "Baustelle" },
+        "url": "https://www.instagram.com/reel/LoveYouSoDemo/",
+        "clips_metadata": {
+          "audio_type": "licensed_music",
+          "music_info": {
+            "music_asset_info": {
+              "title": "Love You So",
+              "display_artist": "The King Khan & BBQ Show"
+            }
+          },
+          "original_sound_info": null
+        }
+      }
+    }
+  ],
+  "paging_info": {
+    "max_id": "NEXT",
+    "more_available": false
+  },
+  "status": "ok"
+}
