@@ -209,9 +209,52 @@
       <button type="submit" {% if running %}disabled{% endif %}>Scan starten</button>
     </form>
 
+    {% if history %}
+    <section class="panel">
+      <h2>Gespeicherte Scans</h2>
+      <p class="muted">
+        Frühere Läufe bleiben hier sichtbar. Auf Render können sie nach einem Redeploy
+        verloren gehen, wenn kein persistenter Disk angebunden ist.
+      </p>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Zeit</th>
+              <th>Konto</th>
+              <th>Modus</th>
+              <th>HIGH</th>
+              <th>Gesamt</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in history %}
+            <tr {% if item.id == active_scan_id %}style="background:#ecfdf5"{% endif %}>
+              <td>{{ item.created_at[:19].replace('T', ' ') if item.created_at else item.id }}</td>
+              <td>{% if item.demo %}Demo{% else %}@{{ item.handle }}{% endif %}</td>
+              <td>{{ item.mode or "—" }}</td>
+              <td class="risk HIGH">{{ item.HIGH }}</td>
+              <td>{{ item.total }}</td>
+              <td><a href="/?scan={{ item.id }}">Ansehen</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
     {% if summary %}
     <section class="panel">
-      <h2>Letztes Ergebnis</h2>
+      <h2>
+        {% if active_scan and active_scan.id %}
+          Scan {{ active_scan.created_at[:19].replace('T', ' ') if active_scan.created_at else active_scan.id }}
+          {% if active_scan.demo %}(Demo){% elif active_scan.handle %}(@{{ active_scan.handle }}){% endif %}
+        {% else %}
+          Letztes Ergebnis
+        {% endif %}
+      </h2>
       <div class="pills">
         <span class="pill">{{ summary.total }} Reels</span>
         <span class="pill HIGH">HIGH {{ summary.HIGH }}</span>
@@ -228,8 +271,13 @@
       </ul>
       {% endif %}
       <div class="dl">
-        {% if has_csv %}<a href="/download/csv">CSV herunterladen</a>{% endif %}
-        {% if has_json %}<a href="/download/json">JSON herunterladen</a>{% endif %}
+        {% if has_csv %}
+          <a href="/download/csv{% if active_scan_id %}?scan={{ active_scan_id }}{% endif %}">CSV herunterladen</a>
+        {% endif %}
+        {% if has_json %}
+          <a href="/download/json{% if active_scan_id %}?scan={{ active_scan_id }}{% endif %}">JSON herunterladen</a>
+        {% endif %}
+        {% if active_scan_id %}<a href="/">Neuesten Scan zeigen</a>{% endif %}
       </div>
     </section>
     {% endif %}

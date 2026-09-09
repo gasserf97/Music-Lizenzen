@@ -153,6 +153,7 @@ ffmpeg ist im Image (Fingerprint). Standard-Modus der UI ist **nur Metadaten** (
 ### Hinweise
 
 - Login: nur Passwort (`SCANNER_PASSWORD`), kein Benutzername.
+- Abgeschlossene Scans werden unter `out/scans/` gespeichert und in der UI unter „Gespeicherte Scans“ angezeigt.
 - Live-Scan ohne `SCRAPECREATORS_API_KEY` geht nicht; Demo-Scan schon.
 - Render schließt HTTP-Requests nach ~100 s. Große Live-Scans laufen im Hintergrund; die Seite lädt neu, bis der Report da ist.
 - Plan in `render.yaml`: `starter`. Free geht nur, wenn dein Account das noch anbietet — dann im Dashboard umstellen.

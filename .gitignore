@@ -17,3 +17,4 @@ out/report.json
 out/state.json
 out/scan.log
 out/allowed_handles.json
+out/scans/

@@ -146,6 +146,7 @@ def test_demo_scan_and_downloads(client: TestClient) -> None:
     assert response.status_code == 200
     assert "Love You So" in response.text
     assert "HIGH" in response.text
+    assert "Gespeicherte Scans" in response.text
     csv_resp = client.get("/download/csv")
     assert csv_resp.status_code == 200
     assert csv_resp.content.startswith(b"\xef\xbb\xbf")
@@ -153,3 +154,17 @@ def test_demo_scan_and_downloads(client: TestClient) -> None:
     assert json_resp.status_code == 200
     payload = json_resp.json()
     assert payload["summary"]["HIGH"] >= 2
+    assert "scan" in payload["summary"]
+    scan_id = payload["summary"]["scan"]["id"]
+    second = client.post(
+        "/scan",
+        data={"handle": "krapfbau", "demo": "1", "mode": "metadata"},
+    )
+    assert second.status_code == 200
+    assert "Gespeicherte Scans" in second.text
+    history = client.get(f"/?scan={scan_id}")
+    assert history.status_code == 200
+    assert "Love You So" in history.text
+    assert scan_id in history.text
+    hist_csv = client.get(f"/download/csv?scan={scan_id}")
+    assert hist_csv.status_code == 200

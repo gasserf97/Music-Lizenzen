@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from export_csv import build_summary, write_csv, write_json
+from export_csv import build_summary
 from models import ReelRow, UsageLog
 from scan import (
     OUT,
@@ -30,6 +30,14 @@ from scan import (
     save_state,
     scan_handle,
     setup_logging,
+)
+from scan_history import (
+    ensure_history_from_latest,
+    is_valid_scan_id,
+    list_scans,
+    load_scan,
+    save_scan,
+    scan_paths,
 )
 from scrapecreators_client import parse_handle
 
@@ -47,6 +55,7 @@ _job: dict[str, Any] = {
     "running": False,
     "error": "",
     "message": "",
+    "last_scan_id": "",
 }
 
 
@@ -191,19 +200,38 @@ def parse_scan_mode(mode: str) -> tuple[bool, bool]:
     return True, False
 
 
-def _last_report() -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+def _last_report(
+    scan_id: str | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None]:
+    ensure_history_from_latest(OUT)
+    if scan_id:
+        data = load_scan(OUT, scan_id)
+        if not data:
+            return [], None, None
+        rows = data.get("rows") or []
+        summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
+        meta = None
+        if summary and isinstance(summary.get("scan"), dict):
+            meta = summary["scan"]
+        else:
+            meta = {"id": scan_id}
+        return rows, summary, meta
+
     path = OUT / "report.json"
     if not path.exists():
-        return [], None
+        return [], None, None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return [], None
+        return [], None, None
     if not isinstance(data, dict):
-        return [], None
+        return [], None, None
     rows = data.get("rows") or []
-    summary = data.get("summary")
-    return rows, summary if isinstance(summary, dict) else None
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
+    meta = None
+    if summary and isinstance(summary.get("scan"), dict):
+        meta = summary["scan"]
+    return rows, summary, meta
 
 
 def execute_scan(
@@ -258,17 +286,33 @@ def execute_scan(
 
     rows = merge_rows(*groups)
     save_state(state)
-    write_csv(rows, OUT / "report.csv")
     summary = build_summary(rows, usage)
-    write_json(rows, OUT / "report.json", summary)
+    mode = "demo" if demo else ("cheap" if cheap else ("metadata" if metadata_only else "full"))
+    meta = save_scan(
+        OUT,
+        rows=rows,
+        summary=summary,
+        handle=handle,
+        demo=demo,
+        mode=mode,
+        force=force,
+    )
+    summary = {**summary, "scan": meta}
     return rows, summary
 
 
 def _run_job(**kwargs: Any) -> None:
     try:
-        execute_scan(**kwargs)
-        _job["message"] = "Scan abgeschlossen."
+        _rows, summary = execute_scan(**kwargs)
+        scan_meta = (summary or {}).get("scan") or {}
+        scan_id = scan_meta.get("id") or ""
+        _job["message"] = (
+            f"Scan abgeschlossen und gespeichert ({scan_id})."
+            if scan_id
+            else "Scan abgeschlossen und gespeichert."
+        )
         _job["error"] = ""
+        _job["last_scan_id"] = scan_id
     except Exception as exc:
         log.exception("Web-Scan fehlgeschlagen")
         _job["error"] = str(exc)
@@ -300,8 +344,11 @@ def _form_context(
     mode: str = "metadata",
     force: bool = False,
     max_reels: str = "",
+    scan_id: str | None = None,
 ) -> dict[str, Any]:
-    rows, summary = _last_report()
+    rows, summary, active_scan = _last_report(scan_id)
+    history = list_scans(OUT)
+    active_id = (active_scan or {}).get("id") or scan_id or ""
     return {
         "request": request,
         "error": error or (_job.get("error") if not _job.get("running") else "") or "",
@@ -317,8 +364,13 @@ def _form_context(
         "max_reels": max_reels,
         "rows": rows,
         "summary": summary,
-        "has_csv": (OUT / "report.csv").exists(),
-        "has_json": (OUT / "report.json").exists(),
+        "active_scan": active_scan,
+        "history": history,
+        "active_scan_id": active_id,
+        "has_csv": bool(active_id and scan_paths(OUT, str(active_id))[0].exists())
+        or (OUT / "report.csv").exists(),
+        "has_json": bool(active_id and scan_paths(OUT, str(active_id))[1].exists())
+        or (OUT / "report.json").exists(),
     }
 
 
@@ -402,8 +454,17 @@ def logout(request: Request) -> RedirectResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, _: None = Depends(require_login)) -> HTMLResponse:
-    return _page(request)
+def index(
+    request: Request,
+    _: None = Depends(require_login),
+    scan: str = "",
+) -> HTMLResponse:
+    scan_id = scan.strip() or None
+    if scan_id and not is_valid_scan_id(scan_id):
+        return _page(request, error="Ungültige Scan-ID.", status_code=400)
+    if scan_id and load_scan(OUT, scan_id) is None:
+        return _page(request, error="Gespeicherter Scan nicht gefunden.", status_code=404)
+    return _page(request, scan_id=scan_id)
 
 
 @app.post("/allowlist/add", response_model=None)
@@ -440,7 +501,7 @@ def allowlist_remove(
 
 @app.get("/api/status")
 def scan_status(_: None = Depends(require_login)) -> JSONResponse:
-    rows, summary = _last_report()
+    rows, summary, active = _last_report()
     return JSONResponse(
         {
             "running": bool(_job.get("running")),
@@ -448,6 +509,7 @@ def scan_status(_: None = Depends(require_login)) -> JSONResponse:
             "message": _job.get("message") or "",
             "total": (summary or {}).get("total", 0) if not _job.get("running") else None,
             "has_report": bool(rows),
+            "last_scan_id": (active or {}).get("id") or _job.get("last_scan_id") or "",
         }
     )
 
@@ -568,10 +630,15 @@ def start_scan(
 
     if is_demo:
         try:
-            execute_scan(**kwargs)
+            _rows, summary = execute_scan(**kwargs)
+            scan_meta = (summary or {}).get("scan") or {}
+            scan_id = scan_meta.get("id") or ""
             _job["error"] = ""
+            _job["last_scan_id"] = scan_id
             _job["message"] = (
-                "Demo-Scan abgeschlossen (keine Live-APIs, keine Aussage über das echte Konto)."
+                "Demo-Scan abgeschlossen und gespeichert"
+                + (f" ({scan_id})" if scan_id else "")
+                + " — keine Live-APIs, keine Aussage über das echte Konto."
             )
         except Exception as exc:
             return _error_page(
@@ -591,6 +658,7 @@ def start_scan(
             mode=mode_value,
             force=is_force,
             max_reels=raw_limit,
+            scan_id=scan_id or None,
         )
 
     with _scan_lock:
@@ -614,16 +682,38 @@ def start_scan(
 
 
 @app.get("/download/csv")
-def download_csv(_: None = Depends(require_login)) -> FileResponse:
-    path = OUT / "report.csv"
+def download_csv(
+    _: None = Depends(require_login),
+    scan: str = "",
+) -> FileResponse:
+    scan_id = scan.strip()
+    if scan_id:
+        if not is_valid_scan_id(scan_id):
+            raise HTTPException(status_code=400, detail="Ungültige Scan-ID.")
+        path, _json = scan_paths(OUT, scan_id)
+        filename = f"report_{scan_id}.csv"
+    else:
+        path = OUT / "report.csv"
+        filename = "report.csv"
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Kein CSV vorhanden. Zuerst scannen.")
-    return FileResponse(path, filename="report.csv", media_type="text/csv")
+    return FileResponse(path, filename=filename, media_type="text/csv")
 
 
 @app.get("/download/json")
-def download_json(_: None = Depends(require_login)) -> FileResponse:
-    path = OUT / "report.json"
+def download_json(
+    _: None = Depends(require_login),
+    scan: str = "",
+) -> FileResponse:
+    scan_id = scan.strip()
+    if scan_id:
+        if not is_valid_scan_id(scan_id):
+            raise HTTPException(status_code=400, detail="Ungültige Scan-ID.")
+        _csv, path = scan_paths(OUT, scan_id)
+        filename = f"report_{scan_id}.json"
+    else:
+        path = OUT / "report.json"
+        filename = "report.json"
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Kein JSON vorhanden. Zuerst scannen.")
-    return FileResponse(path, filename="report.json", media_type="application/json")
+    return FileResponse(path, filename=filename, media_type="application/json")
