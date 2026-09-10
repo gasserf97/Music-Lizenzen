@@ -103,6 +103,9 @@ Der Transkript-Endpunkt von ScrapeCreators wird **nicht** verwendet (Sprache, ke
 - **MEDIUM** — Major-Label-Hinweis (Warner, Atlantic, Universal, Sony, …) oder sonstige kommerzielle Signale ohne bekannten Claim.
 - **UNKNOWN** — keine IG-Musikmetadaten und kein Fingerprint. Nicht als sicher bezeichnen.
 - **LOW** — Rechte bei Bibliothek, insbesondere **Artlist**, sowie Epidemic Sound u. a. (Nachweis prüfen).
+  Fingerprints, die nur den Künstler liefern (z. B. Francesco D'Andrea — *My New Cadillac*), werden über
+  `artlist_catalog.json` und optional Live-Suche (`site:artlist.io`) als Artlist-lizenzierbar erkannt → **LOW**.
+  Live-Suche: `ARTLIST_LOOKUP=0` zum Abschalten. Cache: `out/artlist_cache.json`.
 
 Beobachtungsliste in `watchlist.json` (erweiterbar) → immer **HIGH**:
 

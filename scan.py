@@ -142,6 +142,24 @@ def apply_risk(row: ReelRow, fp: FingerprintHit | None = None) -> ReelRow:
         row.fingerprint_artist = fp.artist
         row.fingerprint_label = fp.label
         row.confidence = fp.confidence
+
+    artlist_ok = False
+    artlist_note = ""
+    title = row.fingerprint_title or row.instagram_audio_title
+    artist = row.fingerprint_artist or row.instagram_audio_artist
+    if title or artist:
+        try:
+            from artlist_client import lookup_artlist
+
+            hit = lookup_artlist(title, artist)
+            if hit:
+                artlist_ok = True
+                artlist_note = hit.note or hit.source
+                if hit.url and hit.url not in artlist_note:
+                    artlist_note = f"{artlist_note}; {hit.url}" if artlist_note else hit.url
+        except Exception as exc:  # noqa: BLE001 — Lookup darf Scan nicht abbrechen
+            log.warning("Artlist-Lookup fehlgeschlagen: %s", exc)
+
     decision = classify(
         ig_title=row.instagram_audio_title,
         ig_artist=row.instagram_audio_artist,
@@ -150,6 +168,8 @@ def apply_risk(row: ReelRow, fp: FingerprintHit | None = None) -> ReelRow:
         fingerprint_artist=row.fingerprint_artist,
         fingerprint_label=row.fingerprint_label,
         fingerprint_match=bool(row.fingerprint_title or row.fingerprint_artist),
+        artlist_licensable=artlist_ok,
+        artlist_note=artlist_note,
     )
     row.risk = decision.risk
     row.risk_reason = decision.reason
@@ -360,6 +380,21 @@ def demo_rows() -> list[ReelRow]:
             "instagram_audio_artist": "Epidemic Sound",
             "audio_type": "licensed_music",
             "shortcode": "demoEpidemic",
+        },
+        {
+            "permalink": "https://www.instagram.com/reel/demoArtlistCadillac/",
+            "taken_at": "2026-07-01T11:00:00+00:00",
+            "caption": "Außenanlage",
+            "instagram_audio_title": "Original audio",
+            "instagram_audio_artist": "krapfbau",
+            "audio_type": "original_sounds",
+            "fp": FingerprintHit(
+                title="My New Cadillac",
+                artist="Francesco D'Andrea",
+                label="Francesco D'Andrea",
+                confidence="match",
+            ),
+            "shortcode": "demoArtlistCadillac",
         },
         {
             "permalink": "https://www.instagram.com/reel/demoIgSound/",

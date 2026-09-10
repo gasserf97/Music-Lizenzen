@@ -138,6 +138,8 @@ def classify(
     fingerprint_artist: str = "",
     fingerprint_label: str = "",
     fingerprint_match: bool = False,
+    artlist_licensable: bool = False,
+    artlist_note: str = "",
 ) -> RiskDecision:
     """Riskikostufe. Kein Treffer ist niemals LOW / unbedenklich.
 
@@ -164,7 +166,16 @@ def classify(
             "mit Anwalt prüfen",
         )
 
-    # Artlist / Bibliothek vor Major: wenn die Rechte dort liegen → LOW
+    # Artlist-Katalog / Lookup: Fingerprint zeigt oft nur Künstler, nicht „Artlist“
+    if artlist_licensable:
+        detail = artlist_note or "über Artlist lizenzierbar"
+        return RiskDecision(
+            "LOW",
+            f"Artlist-lizenzierbar ({detail}). Abo/Lizenznachweis prüfen, dann belassen.",
+            "unverändert lassen",
+        )
+
+    # Bibliotheksname in Metadaten vor Major → LOW
     library = hits_licensed_library(
         fingerprint_label,
         fingerprint_artist,

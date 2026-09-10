@@ -1,0 +1,18 @@
+{
+  "tracks": [
+    {
+      "title": "My New Cadillac",
+      "artists": ["Francesco D'Andrea", "Francesco DAndrea", "Francesco D Andrea"],
+      "url": "https://artlist.io/royalty-free-music/song/my-new-cadillac/32572",
+      "note": "Artlist-Katalog (Double Espresso)"
+    }
+  ],
+  "artists": [
+    {
+      "name": "Francesco D'Andrea",
+      "aliases": ["Francesco DAndrea", "Francesco D Andrea"],
+      "url": "https://artlist.io/royalty-free-music/artist/francesco-dandrea/585",
+      "note": "Artlist-Künstler — Tracks sind über Artlist lizenzierbar"
+    }
+  ]
+}

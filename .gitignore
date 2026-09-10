@@ -18,3 +18,5 @@ out/state.json
 out/scan.log
 out/allowed_handles.json
 out/scans/
+out/artlist_cache.json
+
